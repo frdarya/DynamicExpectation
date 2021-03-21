@@ -221,6 +221,10 @@ concs <-ggplot(concat_Fig1)+aes(prevCond, fit, shape = currCond, color = currCon
   theme_classic() + theme(plot.title = element_text(hjust = 0.5), text = element_text(size=18))
 plot(concs)
 
+All.2 <- glmer(currResp ~ currCond*prevCond+currOrd+(1|subj), data = All.red, family = binomial)
+summary(All.2)
+Anova(All.2, type=3)
+
 All.sup <-glmer(currResp ~ currCond*prevCond+(1|subj), data = All, family = binomial)
 summary(All.sup)
 Anova(All.sup, type=3)
@@ -374,6 +378,8 @@ plot(allEffects(All2.1))
 intAll2<-emmeans(All2.1,~ currCond*prevCond)
 pairs(intAll2,simple='each')
 
+All2.2 <- glmer(currResp ~ currCond*prevCond+currOrd+(1|subj), data = All2.red, family = binomial)
+Anova(All2.2,type=3)
 
 All2.sup <-glmer(currResp ~ currCond*prevCond+(1|subj), data = All2, family = binomial)
 summary(All2.sup)
@@ -497,8 +503,6 @@ firsts2_eff <-ggplot(f1sts2, aes(x=resp_cond,y=fit,color=item, group=item)) +
   scale_color_manual(values = c("t" = "maroon1", "f1" = "palegreen1","f2" = "seashell4"))+
   
 plot(firsts2_eff)
-
-
 
 ##### rule  learning - Exp1 and Exp2 ####
 rulexp1 <- read.csv('rul1_plot.csv')
