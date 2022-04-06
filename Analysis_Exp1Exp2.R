@@ -8,6 +8,8 @@ library(phia)
 library(emmeans)
 library(data.table)
 library(ggplot2)
+library(ggpubr)
+library(car)
 
 ##### EXP 1 #####
 dataset <- read.csv('Exp1.csv')
@@ -51,7 +53,7 @@ dataset$f1_f2 <-rescale(dataset$f1_f2)
 
 tonly <- glmer(targ~targ_cond+(1|subj),data=dataset,family=binomial) # more hits for expected
 
-t_f1 <- subset(dataset, targ_pos > f1_pos)
+t_f1 <- subset(dataset, c(targ_pos > f1_pos & f1 == 'cr'))
 t_int <- glmer(targ ~ targ_cond*f1_cond+targ_ord+(1|subj), data = t_f1, family = binomial)
 summary(t_int)
 Anova(t_int, type = 3)
@@ -59,7 +61,8 @@ int<-emmeans(t_int,~ targ_cond*f1_cond)
 pairs(int,simple='each')
 plot(allEffects(t_int))
 
-t_f2 <- subset(dataset, targ_pos > f2_pos)
+
+t_f2 <- subset(dataset, c(targ_pos > f2_pos, f2=='cr'))
 t2_int <- glmer(targ ~ targ_cond*f2_cond+targ_ord+(1|subj), data = t_f2, family = binomial)
 summary(t2_int)
 Anova(t2_int, type = 3)
@@ -67,7 +70,7 @@ int2<-emmeans(t2_int,~ targ_cond*f2_cond)
 pairs(int2,simple='each')
 plot(allEffects(t2_int))
 
-t_f3 <- subset(dataset, targ_pos > f3_pos)
+t_f3 <- subset(dataset, c(targ_pos > f3_pos, f3=='cr'))
 t3_int <- glmer(targ ~ targ_cond*f3_cond+targ_ord+(1|subj), data = t_f3, family = binomial)
 summary(t3_int)
 Anova(t3_int, type = 3)
@@ -78,10 +81,11 @@ Anova(tf1_last, type =3)
 plot(allEffects(tf1_last))
 
 targ_Fig1 <- data.frame(effect("targ_cond*f1_cond", t_int))
-ts <-ggplot(targ_Fig1)+aes(f1_cond, fit, shape = targ_cond, color = targ_cond, ymin = lower, ymax = upper)+
+ts <-ggplot(targ_Fig1)+aes(f1_cond, fit, color = targ_cond, ymin = lower, ymax = upper)+
   geom_pointrange(size=2,position = position_dodge(width = .25)) + xlab("Previous F1 expectation") + ylab("p(hits)") +
   scale_color_manual(values = c("Unexpected" = "#F8766D", "Expected" = "#00BFC4"))+
-  theme_classic() + theme(plot.title = element_text(hjust = 0.5), text = element_text(size=18))
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5), text = element_text(size=14))+
+  labs(color='Current target')
 plot(ts)
 
 targLast_SuppFig <- data.frame(effect("targ_cond*f1_cond", tf1_last))
@@ -94,7 +98,7 @@ plot(tf1ls)
 ##### predicting CR1 (F1) #####
 f1only <- glmer(f1~f1_cond+(1|subj),data=dataset,family=binomial) # ns
 
-f1_t <- subset(dataset, targ_pos < f1_pos)
+f1_t <- subset(dataset, c(targ_pos < f1_pos & targ=='hit'))
 f1_int <- glmer(f1 ~ targ_cond*f1_cond+f1_ord+ (1|subj), data = f1_t, family = binomial)
 summary(f1_int)
 Anova(f1_int, type = 3)
@@ -102,13 +106,13 @@ fint<-emmeans(f1_int,~ targ_cond*f1_cond)
 pairs(fint,simple='each')
 plot(allEffects(f1_int))
 
-f1_f2 <- subset(dataset, f1_pos > f2_pos)
+f1_f2 <- subset(dataset, c(f1_pos > f2_pos & f2=='cr'))
 f1_2 <- glmer(f1 ~ f2_cond*f1_cond+f1_ord+ (1|subj), data = f1_f2, family = binomial)
 summary(f1_2)
 Anova(f1_2, type = 3)
 plot(allEffects(f1_2))
 
-f1_f3 <- subset(dataset, f1_pos > f3_pos)
+f1_f3 <- subset(dataset, c(f1_pos > f3_pos & f3=='cr'))
 f1_3 <- glmer(f1 ~ f3_cond*f1_cond+f1_ord+ (1|subj), data = f1_f3, family = binomial)
 summary(f1_3)
 Anova(f1_3, type = 3)
@@ -121,10 +125,11 @@ Anova(f1t_last, type = 3)
 plot(allEffects(f1t_last))
 
 f1_Fig1 <- data.frame(effect("targ_cond*f1_cond", f1_int))
-f1s <-ggplot(f1_Fig1)+aes(targ_cond, fit, shape = f1_cond, color = f1_cond, ymin = lower, ymax = upper)+
+f1s <-ggplot(f1_Fig1)+aes(targ_cond, fit,  color = f1_cond, ymin = lower, ymax = upper)+
   geom_pointrange(size=2,position = position_dodge(width = .25)) + xlab("Previous target expectation") + ylab("p(CR1)") +
   scale_color_manual(values = c("Unexpected" = "#F8766D", "Expected" = "#00BFC4"))+
-  theme_classic() + theme(plot.title = element_text(hjust = 0.5), text = element_text(size=18))
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5), text = element_text(size=14))+
+  labs(color='Current F1')
 plot(f1s)
 
 f1tlast_SuppFig <- data.frame(effect("f1_cond*targ_cond", f1t_last))
@@ -138,19 +143,19 @@ plot(f1tls)
 # predicting f2
 f2only <- glmer(f2~f2_cond+(1|subj),data=dataset,family=binomial) # more UCR2
 
-f2_t <- subset(dataset, targ_pos < f2_pos)
+f2_t <- subset(dataset, c(targ_pos < f2_pos & targ=='hit'))
 f2_int <- glmer(f2 ~ targ_cond*f2_cond+f2_ord+ (1|subj), data = f2_t, family = binomial)
 summary(f2_int)
 Anova(f2_int, type = 3)
 plot(allEffects(f2_int))
 
-f2_f1 <- subset(dataset, f2_pos > f1_pos)
+f2_f1 <- subset(dataset, c(f2_pos > f1_pos & f1=='cr'))
 f2_1int <- glmer(f2 ~ f1_cond*f2_cond+f2_ord+ (1|subj), data = f2_f1, family = binomial)
 summary(f2_1int)
 Anova(f2_1int, type = 3)
 plot(allEffects(f2_1int))
 
-f2_f3 <- subset(dataset, f2_pos > f3_pos)
+f2_f3 <- subset(dataset, c(f2_pos > f3_pos & f3=='cr'))
 f2_3int <- glmer(f2 ~ f3_cond*f2_cond+f2_ord+ (1|subj), data = f2_f3, family = binomial)
 summary(f2_3int)
 Anova(f2_3int, type = 3)
@@ -159,21 +164,19 @@ plot(allEffects(f2_3int))
 
 # predicting F3#
 f3only <- glmer(f3~f3_cond+(1|subj),data=dataset,family=binomial) # ns
-
-
-f3_t <- subset(dataset, targ_pos < f3_pos)
+f3_t <- subset(dataset, c(targ_pos < f3_pos & targ=='hit'))
 f3_int <- glmer(f3 ~ targ_cond*f3_cond+f3_ord+ (1|subj), data = f3_t, family = binomial)
 summary(f3_int)
 Anova(f3_int, type = 3)
 plot(allEffects(f3_int))
 
-f3_f1 <- subset(dataset, f3_pos > f1_pos)
+f3_f1 <- subset(dataset, c(f3_pos > f1_pos & f1=='cr'))
 f3_1int <- glmer(f3 ~ f1_cond*f3_cond+f3_ord+ (1|subj), data = f3_f1, family = binomial)
 summary(f3_1int)
 Anova(f3_1int, type = 3)
 plot(allEffects(f3_1int))
 
-f3_f2 <- subset(dataset, f3_pos > f2_pos)
+f3_f2 <- subset(dataset, c(f3_pos > f2_pos & f2=='cr'))
 f3_2int <- glmer(f3 ~ f2_cond*f3_cond+f3_ord+ (1|subj), data = f3_f2, family = binomial)
 summary(f3_2int)
 Anova(f3_2int, type = 3)
@@ -197,7 +200,7 @@ F1$targ = factor(F1$targ,
                  labels = c('Inc', 'Cor'))
 
 
-keeps <- c("subj", "targ","targ_cond","targ_ord","f1","f1_cond","f1_ord","targ_f1")
+keeps <- c("subj", "targ","targ_cond","targ_ord","f1","f1_cond","f1_ord","f1_targ")
 Tar=Tar[keeps]
 F1=F1[keeps]
 setnames(Tar, old=c("targ","targ_cond","targ_ord"), new=c("currResp", "currCond","currOrd"))
@@ -215,11 +218,14 @@ pairs(intAll,simple='each')
 plot(allEffects(All.1))
 
 concat_Fig1 <- data.frame(effect("currCond*prevCond", All.1))
-concs <-ggplot(concat_Fig1)+aes(prevCond, fit, shape = currCond, color = currCond, ymin = lower, ymax = upper)+
+concs <-ggplot(concat_Fig1)+aes(prevCond, fit, color = currCond, ymin = lower, ymax = upper)+
   geom_pointrange(size=2,position = position_dodge(width = .25)) + xlab("Previous  expectation") + ylab("p(correct)") +
   scale_color_manual(values = c("Unexpected" = "#F8766D", "Expected" = "#00BFC4"))+
-  theme_classic() + theme(plot.title = element_text(hjust = 0.5), text = element_text(size=18))
+  theme_classic() + theme(plot.title = element_text(hjust = 0.5), text = element_text(size=14))+
+  labs(color='Current expectation')
 plot(concs)
+
+ggarrange(ts, f1s, concs, ncol = 3, legend = 'bottom')
 
 All.1 <- glmer(currResp ~ currCond*prevCond+currOrd+(1|subj), data = All.red, family = binomial)
 summary(All.1)
@@ -401,13 +407,13 @@ concsup2 <-ggplot(All2sup_Fig)+aes(prevCond, fit, shape = currCond, color = curr
 plot(concsup2)
 
 ##### F2 #######
-f2_t1 <- subset(dataset2, targ_pos < f2_pos & targ=='hit')
+f2_t1 <- subset(dataset2, c(targ_pos < f2_pos & targ=='hit'))
 f2_t_f <- glmer(f2~f2_cond*targ_cond+f2_ord+(1|subj), data = f2_t1, family = binomial)
 summary(f2_t_f)
 Anova(f2_t_f, type = 3)
 plot(allEffects(f2_t_f))
 
-f2_f1_1 <- subset(dataset2, f1_pos < f2_pos & f1=='cr')
+f2_f1_1 <- subset(dataset2, c(f1_pos < f2_pos & f1=='cr'))
 f2_f1_f <- glmer(f2~f2_cond*f1_cond+f2_ord+(1|subj), data = f2_f1_1, family = binomial)
 summary(f2_f1_f)
 Anova(f2_f1_f, type = 3)
@@ -504,7 +510,7 @@ first2Figs <-ggplot(f1sts2,aes(item, fit, fill = resp_cond, shape = resp_cond, c
   theme_classic() +theme(plot.title = element_text(hjust = 0.5),text = element_text(size = 18))
 plot(first2Figs)
 
-firsts2_eff <-ggplot(f1sts2, aes(x=resp_cond,y=fit,color=item, group=item)) +
+firsts2_eff <- ggplot(f1sts2, aes(x=resp_cond,y=fit,color=item, group=item)) +
   geom_line() +
   geom_errorbar(aes(ymin=lower,ymax=upper),width=.1)+ geom_point(size=5) + 
   labs(x = 'Condition',y='% Correct') +
@@ -513,6 +519,8 @@ firsts2_eff <-ggplot(f1sts2, aes(x=resp_cond,y=fit,color=item, group=item)) +
   scale_color_manual(values = c("t" = "maroon1", "f1" = "palegreen1","f2" = "seashell4"))+
   
 plot(firsts2_eff)
+
+
 
 ##### rule  learning - Exp1 and Exp2 ####
 rulexp1 <- read.csv('rul1_plot.csv')
@@ -524,6 +532,7 @@ rulacc1 <- ggplot(rulexp1, aes(x=Half, y=Accuracy, fill = Half)) +
   theme_classic()+
   theme(text = element_text(size=18), legend.position="none")+
   scale_fill_brewer(palette="Dark2")
+rulacc1  
 
 rulrt1 <- ggplot(rulexp1, aes(x=Half, y=RT, fill = Half)) + 
   geom_boxplot()+
@@ -531,7 +540,9 @@ rulrt1 <- ggplot(rulexp1, aes(x=Half, y=RT, fill = Half)) +
   ylab("RT (ms)")+
   theme_classic()+ 
   theme(text = element_text(size=18), legend.position = "none")+
-  scale_fill_brewer(palette="Dark2")   
+  scale_fill_brewer(palette="Dark2")
+rulrt1   
+
 
 rulexp2 <- read.csv('rul2_plot.csv')
 
@@ -542,6 +553,7 @@ rulacc2 <- ggplot(rulexp2, aes(x=Half, y=Accuracy, fill = Half)) +
   theme_classic()+
   theme(text = element_text(size=18), legend.position="none")+
   scale_fill_brewer(palette="Dark2")
+rulacc2  
 
 rulrt2 <- ggplot(rulexp2, aes(x=Half, y=RT, fill = Half)) + 
   geom_boxplot()+
@@ -550,3 +562,4 @@ rulrt2 <- ggplot(rulexp2, aes(x=Half, y=RT, fill = Half)) +
   theme_classic()+ 
   theme(text = element_text(size=18), legend.position = "none")+
   scale_fill_brewer(palette="Dark2")
+rulrt2   
